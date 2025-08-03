@@ -1,20 +1,21 @@
 import os
-
 from decouple import config
+
+from django.core.management.utils import get_random_secret_key
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# print(BASE_DIR)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = get_random_secret_key()
+print(SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG')
-ALLOWED_HOSTS=["localhost","146.193.224.171","gimme-web.duckdns.org","gimme-web-secure.duckdns.org", "127.0.0.1"]
+DEBUG = True
+
+ALLOWED_HOSTS = ["localhost", "146.193.224.171", "gimme-web.duckdns.org", "gimme-web-secure.duckdns.org", "127.0.0.1"]
 
 INTERNAL_IPS = (
     '127.0.0.1',
@@ -65,7 +66,6 @@ TEMPLATES = [
 ]
 WSGI_APPLICATION = 'GIMMEWeb.wsgi.application'
 
-
 # Database
 DATABASES = {
     'default': {
@@ -110,7 +110,6 @@ CSRF_USE_SESSIONS = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'GIMMEWeb/core/templates/static/')]
-
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'GIMMEWeb/core/templates/static/media/')

@@ -928,19 +928,20 @@ class Views:  # acts as a namespace
 
     # region Global Functions
     def init_server(request):
+        
         server_state_model_bridge.set_curr_adaptation_state([])
         server_state_model_bridge.set_ready_for_new_activity(True)
         server_state_model_bridge.set_curr_selected_users([])
         server_state_model_bridge.set_curr_free_users(player_bridge.get_all_stored_student_usernames())
         server_state_model_bridge.set_curr_selected_tasks([])
         server_state_model_bridge.set_curr_free_tasks(task_bridge.get_all_stored_task_ids())
-
+        
         server_state_model_bridge.set_sim_is_link_shared(False)
         server_state_model_bridge.set_sim_is_task_created(False)
         server_state_model_bridge.set_sim_week_one_users_evaluated(False)
         server_state_model_bridge.set_sim_simulate_reaction(False)
         server_state_model_bridge.set_sim_week_four_done_once(False)
-
+        
         server_state_model_bridge.set_simulation_week(0)
         server_state_model_bridge.set_sim_student_to_evaluate("")
         server_state_model_bridge.set_sim_unavailable_student("")
@@ -948,56 +949,26 @@ class Views:  # acts as a namespace
         server_state_model_bridge.set_sim_student_y("")
         server_state_model_bridge.set_sim_student_z("")
         server_state_model_bridge.set_sim_student_w("")
-
+        
         for player in player_bridge.get_all_stored_student_usernames():
             player_bridge.reset_player_curr_state(player)
             player_bridge.reset_player_past_model_increases(player)
-
+        
         if not Questionnaire.objects.filter(title="First_Questionnaire").exists():
             OEJTS_questionnaire.create_MBTI_questionnaire()
-
+        
         if not Tag.objects.filter(name="All", target="student").exists():
             Tag.objects.create(name="All", target="student", is_removable=False, is_assignable=False)
-
+        
         if not Tag.objects.filter(name="All", target="task").exists():
             Tag.objects.create(name="All", target="task", is_removable=False, is_assignable=False)
-
-        # if not Tag.objects.filter(name="Group A").exists():
-        #     Tag.objects.create(name="Group A", is_removable=False)
-        # 
-        # if not Tag.objects.filter(name="Group B").exists():
-        #     Tag.objects.create(name="Group B", is_removable=False)
-        # 
-        # if not Tag.objects.filter(name="E").exists():
-        #     Tag.objects.create(name="E", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="I").exists():
-        #     Tag.objects.create(name="I", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="S").exists():
-        #     Tag.objects.create(name="S", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="N").exists():
-        #     Tag.objects.create(name="N", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="T").exists():
-        #     Tag.objects.create(name="T", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="F").exists():
-        #     Tag.objects.create(name="F", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="J").exists():
-        #     Tag.objects.create(name="J", is_removable=False, is_assignable=False)
-        # 
-        # if not Tag.objects.filter(name="P").exists():
-        #     Tag.objects.create(name="P", is_removable=False, is_assignable=False)
-
+        
         # create default professor for tests
         http_request = HttpRequest()
         http_request.method = 'POST'
         http_request.POST['fullname'] = 'default'
         http_request.POST['username'] = 'default'
-        http_request.POST['role'] = 'Professor'
+        http_request.POST['role'] = '[\'Professor\']'
         http_request.POST['email'] = 'default@mocked.inst.pt'
         http_request.POST['password1'] = 'VW8fiAUkGs7QLwn'
         http_request.POST['password2'] = 'VW8fiAUkGs7QLwn'
@@ -1005,11 +976,11 @@ class Views:  # acts as a namespace
         http_request.POST['gender'] = 'Male'
         http_request.POST['description'] = '.'
         http_request.POST['Create User'] = 'Register'
-
+        
         http_request.user = request.user
-
+        
         Views.user_registration(http_request)
-
+        
         return HttpResponse('ok')
 
     def simulate_reaction(request):
@@ -1227,7 +1198,7 @@ class Views:  # acts as a namespace
 
         context = {"availableQuestionnaires": available_questionnaires}
         try:
-            return render(request, dash_switch.get(str(request.user.userprofile.role)), context)
+            return render(request, dash_switch.get(str(request.user.userprofile.role[0])), context)
         except UserProfile.DoesNotExist:
             return redirect('/admin')
 
@@ -1259,8 +1230,14 @@ class Views:  # acts as a namespace
             return Views.dash(request)
 
     def save_player_characteristics(username, ability, engagement):
-        characteristics = player_bridge.get_player_states_data_frame(username).states[-1].characteristics
-        ability_to_save = (float(ability) - characteristics.ability)
+        
+        prev_states = player_bridge.get_player_states_data_frame(username).states
+        if len(prev_states) > 0:
+            characteristics = prev_states[-1].characteristics
+            ability_to_save = (float(ability) - characteristics.ability)
+        else:
+            ability_to_save = float(ability)
+        
 
         sim_flags = server_state_model_bridge.get_sim_flags()
         if username == sim_flags['simStudentX'] and sim_flags['simWeek'] == 2:
@@ -1525,20 +1502,22 @@ class Views:  # acts as a namespace
                 try:
                     instance = Task.objects.get(task_id=task_id_to_update)
 
+                    print(request_info)
+                
                     post = request.POST
                     _mutable = post._mutable
                     post._mutable = True
                     post['taskId'] = task_id_to_update
                     post['minReqAbility'] = request_info['difficulty']
-                    post['profileW'] = request_info['taskW']
-                    post['difficultyW'] = str(1.0 - float(request_info['taskW']))
-                    post['initDate'] = request_info['initDate']
-                    post['finalDate'] = request_info['finalDate']
+                    post['profile_w'] = request_info['profile_w']
+                    post['difficulty_w'] = str(1.0 - float(request_info['profile_w']))
+                    post['initDate'] = request_info['init_date']
+                    post['finalDate'] = request_info['final_date']
 
                     post['profile'] = json.dumps(InteractionsProfile(
                         {
-                            'Challenge': float(request_info['profileDim0']),
-                            'Focus': float(request_info['profileDim1'])
+                            'Challenge': float(request_info['profile_dim_0']),
+                            'Focus': float(request_info['profile_dim_1'])
                         }
                     ), default=lambda o: o.__dict__, sort_keys=True)
 
@@ -2070,7 +2049,19 @@ class Views:  # acts as a namespace
             curr_selected_users = server_state_model_bridge.get_curr_selected_users()
             curr_selected_users.pop(0)
             for playerId in curr_selected_users:
-                prev_state = player_bridge.get_player_states_data_frame(playerId).states[-1]
+                prev_states = player_bridge.get_player_states_data_frame(playerId).states
+                if len(prev_states) > 0:
+                    prev_state = prev_states[-1]
+                else:
+                    prev_state = PlayerState(
+                        type=1,
+                        characteristics = PlayerCharacteristics(
+                            ability=0,
+                            engagement=0
+                        ),
+                        profile = int_prof_template.generate_copy()
+                    )
+                
                 new_state = Views.calc_reaction(
                     player_bridge=player_bridge,
                     state=prev_state,
@@ -2089,13 +2080,13 @@ class Views:  # acts as a namespace
         num_dims = len(preferences.dimensions)
         new_state = PlayerState(
             type=1,
-            characteristics=PlayerCharacteristics(
-                ability=state.characteristics.ability,
-                engagement=state.characteristics.engagement
+            characteristics = PlayerCharacteristics(
+                ability = state.characteristics.ability,
+                engagement = state.characteristics.engagement
             ),
             profile=state.profile)
         new_state.characteristics.engagement = 1 - (
-                preferences.distanceBetween(state.profile) / math.sqrt(num_dims))  #between 0 and 1
+                preferences.distance_between(state.profile) / math.sqrt(num_dims))  #between 0 and 1
         if new_state.characteristics.engagement > 1:
             breakpoint()
         ability_increase_sim = new_state.characteristics.engagement
