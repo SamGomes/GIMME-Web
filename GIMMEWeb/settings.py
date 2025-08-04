@@ -13,7 +13,7 @@ SECRET_KEY = get_random_secret_key()
 print(SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["localhost", "146.193.224.171", "gimme-web.duckdns.org", "gimme-web-secure.duckdns.org", "127.0.0.1"]
 
